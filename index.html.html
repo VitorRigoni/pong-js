@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>Pong - Vitor Rigoni</title>
+	</head>
+	<body>
+		<canvas id="canvas" width="800" height="400"></canvas>
+		<p>Controles:</p>
+		<dl>
+			<dt>Jogador 1:</dt>
+			<dd>Cima: W</dd>
+			<dd>Baixo: S</dd>
+			<dt>Jogador 2:</dt>
+			<dd>Cima: Seta para cima</dd>
+			<dd>Baixo: Seta para baixo</dd>
+		</dl>
+		<button id="switch" onclick="switchIA()">Ligar IA para Player 2</button>
+	</body>
+
+	<script type="text/javascript">
+		var ctx = document.getElementById('canvas').getContext('2d');
+		var canStartGame = false;
+		var ctxAttr = {
+			w: 800,
+			h: 400,
+			x: 0,
+			y: 0,
+			bg: "#000"
+		}
+		var ball = {
+			radius: 10,
+			color: "#FFF",
+			x: randomNum(ctxAttr.w-50),
+			y: randomNum(ctxAttr.h-50),
+			xSpeed: 5 * randomDir(),
+			ySpeed: 3,
+			rect: {}
+		};
+		var player1 = {
+			w: 15,
+			h: 50,
+			x: 5,
+			y: 150,
+			ySpeed: 10,
+			score: 0,
+			rect: {},
+			keyPressed: "",
+			bg: "#FFF"
+		};
+		var player2 = {
+			w: 15,
+			h: 50,
+			x: ctxAttr.w - 20,
+			y: 150,
+			ySpeed: 10,
+			score: 0,
+			rect: {},
+			keyPressed: "",
+			isIA: false,
+			bg: "#FFF"
+		};
+
+		if (ctx) {
+			window.addEventListener("keydown", getPressedKey);
+			window.addEventListener("keyup", resetKeyUp);
+			ctx.fillStyle = ctxAttr.bg;
+			ctx.fillRect(ctxAttr.x, ctxAttr.y, ctxAttr.w, ctxAttr.h);
+			drawBall();
+			drawPlayers();
+			drawUI();
+
+			function drawBall() {
+				ctx.beginPath();
+				ctx.arc(ball.x, ball.y, ball.radius, 0, 2*Math.PI);
+				ctx.closePath();
+				ctx.fillStyle = "#FFF";
+				ctx.fill();
+			}
+
+			function drawPlayers() {
+				ctx.fillStyle = player1.bg;
+				ctx.fillRect(player1.x, player1.y, player1.w, player1.h);
+				ctx.fillStyle = player2.bg;
+				ctx.fillRect(player2.x, player2.y, player2.w, player2.h);
+			}
+
+			function drawUI() {
+				ctx.font = "bold 20px sans-serif";
+				ctx.textBaseline = "top";
+				ctx.fillText(player1.score, ctxAttr.w/2-50, 10);
+				ctx.fillText(player2.score, ctxAttr.w/2+50, 10);
+			}
+
+			function moveBall() {
+				ball.x += ball.xSpeed;
+				ball.y += ball.ySpeed;
+			}
+
+			function createCollisionRects() { 
+				ball.rect = {
+					top: ball.y,
+					left: ball.x,
+					bottom: ball.y + ball.radius,
+					right: ball.x + ball.radius
+				};
+				player1.rect = {
+					top: player1.y,
+					left: player1.x,
+					bottom: player1.y + player1.h,
+					right: player1.x + player1.w
+				};
+				player2.rect = {
+					top: player2.y,
+					left: player2.x,
+					bottom: player2.y + player2.h,
+					right: player2.x + player2.w
+				};
+			}
+
+			function calculateCollision() {
+				if (intersectRect(player1.rect, ball.rect)) {
+					ball.xSpeed *= -1;
+				};
+				if (intersectRect(ball.rect, player2.rect)) {
+					ball.xSpeed *= -1;
+				};
+			}
+
+			function canvasBallBoundaries() {
+				if (ball.x <= ball.radius) {
+					player2.score += 1;
+					resetGame();
+				}
+				if (ball.x >= ctxAttr.w-ball.radius) {
+					player1.score +=1;
+					resetGame();
+				}
+				if ((ball.y <= ball.radius) || (ball.y >= ctxAttr.h-ball.radius)) {
+					ball.ySpeed *= -1;
+				}
+			}
+
+			function resetGame() {
+				ball = {
+					radius: 10,
+					color: "#FFF",
+					x: randomNum(ctxAttr.w),
+					y: randomNum(ctxAttr.h),
+					xSpeed: 5,
+					ySpeed: 3,
+					rect: {}
+				};
+				player1 = {
+					w: 15,
+					h: 50,
+					x: 5,
+					y: 150,
+					ySpeed: 10,
+					score: player1.score,
+					rect: {},
+					bg: "#FFF"
+				};
+				player2 = {
+					w: 15,
+					h: 50,
+					x: ctxAttr.w - 20,
+					y: 150,
+					ySpeed: 10,
+					score: player2.score,
+					rect: {},
+					isIA: player2.isIA,
+					bg: "#FFF"
+				};
+				canStartGame = false;
+				setTimeout(startGame, 3000);
+			}
+
+			function getPressedKey(e) {
+				var key = e.keyCode ? e.keyCode : e.charCode;
+
+				if (!player2.isIA) {
+					if (key == 38) {
+						player2.keyPressed = "up";
+					} else if (key == 40) {
+						player2.keyPressed = "down";
+					}
+				};
+
+				if (key == 87) {
+					player1.keyPressed = "up";
+				} else if (key == 83) {
+					player1.keyPressed = "down";
+				};
+			}
+
+			function movePlayers() {
+
+				if (canStartGame) {
+					if (player2.keyPressed == "up") { //Player 2 move para cima
+						if (player2.y <= 0) return;
+						player2.y += player1.ySpeed*-1;
+					};
+
+					if (player2.keyPressed == "down") { // Player 2 move para baixo
+						if (player2.y+player2.h >= ctxAttr.h) return;
+						player2.y += player1.ySpeed;
+					}
+
+					if (player1.keyPressed == "up") { //Player 1 move para cima
+						if (player1.y <= 0) return;
+						player1.y += player2.ySpeed*-1;
+					}
+
+					if (player1.keyPressed == "down") { // Player 1 move para baixo
+						if (player1.y+player1.h >= ctxAttr.h) return;
+						player1.y += player2.ySpeed;
+					}
+				}
+
+			}
+
+			function resetKeyUp(e) {
+				var key = e.keyCode ? e.keyCode : e.charCode;
+
+				if ((key == 38) || (key == 40))
+					player2.keyPressed = "";	
+				
+				if ((key == 87) || (key == 83))
+					player1.keyPressed = "";
+			}
+
+
+			function startGame() {
+				canStartGame = true;
+				setTimeout(increaseDiff, 10000);
+			}
+
+			function increaseDiff () {
+				var dir = ball.xSpeed > 0 ? 1 : -1;
+				ball.xSpeed += dir;
+				ball.ySpeed += dir;
+				setTimeout(increaseDiff, 10000);
+			}
+
+			function IA () {
+				if (player2.isIA) {
+					player2.y = ball.y-player2.h/2;
+				};
+			}
+
+
+			function update() {
+				if (canStartGame) {
+					ctx.clearRect(ctxAttr.x, ctxAttr.y, ctxAttr.w, ctxAttr.h);
+					ctx.fillStyle = ctxAttr.bg;
+					ctx.fillRect(ctxAttr.x, ctxAttr.y, ctxAttr.w, ctxAttr.h);
+					canvasBallBoundaries();
+					
+					moveBall();
+					IA();
+					movePlayers();
+
+					createCollisionRects();
+					calculateCollision();
+
+					drawBall();
+					drawPlayers();
+					drawUI();
+				};
+			}
+
+			//Helper methods
+			function randomNum(seed) {
+				return Math.floor((Math.random()*seed)+1);
+			}
+
+			function randomDir() {
+				return Math.random() < 0.5 ? -1 : 1;
+			}
+
+			function intersectRect(r1, r2) {
+				return !(r2.left > r1.right || 
+						r2.right < r1.left || 
+						r2.top > r1.bottom ||
+						r2.bottom < r1.top);
+			}
+
+			function switchIA() {
+				var a = document.getElementById('switch');
+				player2.isIA = !player2.isIA;
+				if (player2.isIA) 
+					a.innerHTML = "Desligar IA para Player 2";
+				else
+					a.innerHTML = "Ligar IA para Player 2";
+
+			}
+
+			setInterval(update, 24);
+			setTimeout(startGame, 3000);
+		};
+	</script>
+
+</html>
